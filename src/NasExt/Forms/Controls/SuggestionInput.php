@@ -15,7 +15,7 @@ use Nette\Application\Responses\JsonResponse;
 use Nette\Application\UI\BadSignalException;
 use Nette\Application\UI\ISignalReceiver;
 use Nette\Application\UI\Presenter;
-use Nette\Callback;
+use Nette\Utils\Callback;
 use Nette\Forms\Container;
 use Nette\Forms\Controls\TextInput;
 use Nette\Forms\Form;
@@ -34,7 +34,7 @@ class SuggestionInput extends TextInput implements ISignalReceiver
 	/** @var int */
 	protected $payloadLimit = 5;
 
-	/** @var callback returning array */
+	/** @var callable */
 	protected $suggestCallback;
 
 	/** @var string parameter name */
@@ -64,7 +64,6 @@ class SuggestionInput extends TextInput implements ISignalReceiver
 	 */
 	public function getControl()
 	{
-		$container = Html::el('div')->addAttributes(array('class' => 'suggestion-input'));
 		/** @var $control Html */
 		$control = parent::getControl();
 
@@ -78,18 +77,17 @@ class SuggestionInput extends TextInput implements ISignalReceiver
 				$this->lookupPath('Nette\Application\UI\Presenter') . self::NAME_SEPARATOR . self::SIGNAL_NAME . '!', array(self::SUGGEST_PARAMETER => '%filter%')
 			);
 		}
-		$container->add($control);
-		return $container;
+		return $control;
 	}
 
 
 	/**
-	 * @param array $suggest
+	 * @param callable $suggest
 	 * @return SuggestionInput provides fluent interface
 	 */
 	public function setSuggestCallback($suggest)
 	{
-		$this->suggestCallback = new Callback($suggest);
+		$this->suggestCallback = $suggest;
 		return $this;
 	}
 
@@ -117,7 +115,7 @@ class SuggestionInput extends TextInput implements ISignalReceiver
 	public function signalReceived($signal)
 	{
 		if ($signal === self::SIGNAL_NAME) {
-			if (!($this->suggestCallback instanceof Callback)) {
+			if (!is_callable($this->suggestCallback)) {
 				throw new InvalidStateException('Suggets callback not set.');
 			}
 
@@ -125,7 +123,7 @@ class SuggestionInput extends TextInput implements ISignalReceiver
 			$presenter = $this->getForm()->getPresenter();
 
 			/** @var SuggestionData $data */
-			$data = $this->suggestCallback->invoke($presenter->getParameter(self::SUGGEST_PARAMETER), $this->payloadLimit, new SuggestionData());
+			$data = Callback::invokeArgs($this->suggestCallback, array($presenter->getParameter(self::SUGGEST_PARAMETER), $this->payloadLimit, new SuggestionData()));
 
 			$presenter->sendResponse(new JsonResponse($data->getData()));
 		} else {

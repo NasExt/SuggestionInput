@@ -1,7 +1,6 @@
 /**
- * suggestionInput
- * @package suggestionInput
- * @copyright Copyright (c) 2012 Dusan Hudak
+ * SuggestionInput
+ * @author Dusan Hudak <admin@dusan-hudak.com>
  */
 
 /**
@@ -46,7 +45,7 @@ function SuggestionInputControl() {
 	this.options = {
 		startSuggest: 3,
 		suggestTimeout: 250,
-		suggestListClass: 'typeahead dropdown-menu',
+		suggestListClass: 'suggestion-input-typeahead dropdown-menu',
 		suggestListActiveClass: 'active'
 	};
 	this.name = undefined;
@@ -246,7 +245,7 @@ SuggestionInput.create = function (controlId, options) {
 
 		var width = input.control.innerWidth();
 		input.suggest.css({
-			minWidth: width + "px"
+			minWidth: (width-2) + "px"
 		});
 		input.control.css({
 			marginBottom: "0px"
