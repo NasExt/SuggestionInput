@@ -96,7 +96,6 @@
 			var suggestListContainer = si.getSuggestListContainer($input);
 			if (suggestListContainer.is(':visible')) {
 				suggestListContainer.hide();
-				$input.trigger("suggest.hide");
 			}
 		};
 
@@ -108,17 +107,7 @@
 			var suggestListContainer = si.getSuggestListContainer($input);
 			if (suggestListContainer.is(':hidden')) {
 				suggestListContainer.show();
-				$input.trigger("suggest.show");
 			}
-		};
-
-		/**
-		 * Cange input value
-		 * @param $input
-		 * @param $val
-		 */
-		this.changeValue = function ($input, $val) {
-			$input.val($val).change();
 		};
 
 		/**
@@ -168,7 +157,6 @@
 				// Send ajax request
 				$.ajax(si.getSignalLink($input), {
 					success: function (payload) {
-						//suggestListContainer.data('init', true);-----------------------------------
 						suggestListContainer.children().remove();
 
 						var showData = payload.use;
@@ -185,9 +173,9 @@
 										suggestListContainer.children().removeClass(si.settings.suggestListActiveClass);
 										$(this).addClass(si.settings.suggestListActiveClass);
 									})
-									.click(function () {
+									.click(function (e) {
 										si.hideSuggestListContainer($input);
-										si.changeValue($input, item.data('value'));
+										$input.val(item.data('value')).change();
 									});
 
 								suggestListContainer.append(item);
@@ -226,11 +214,11 @@
 				var selected = suggestListContainer.children('.' + si.settings.suggestListActiveClass);
 				if (!selected.length) {
 					var item = suggestListContainer.children(':first-child').addClass(si.settings.suggestListActiveClass);
-					si.changeValue($input, item.data('value'));
+					$input.val(item.data('value'));
 				} else if (selected.next().length) {
 					selected.removeClass(si.settings.suggestListActiveClass);
 					var item = selected.next().addClass(si.settings.suggestListActiveClass);
-					si.changeValue($input, item.data('value'));
+					$input.val(item.data('value'));
 				}
 				return false;
 			} else if (si.kb.up(e) && suggestListContainer.is(':visible')) {
@@ -238,7 +226,7 @@
 				if (selected.prev().length) {
 					selected.removeClass(si.settings.suggestListActiveClass);
 					var item = selected.prev().addClass(si.settings.suggestListActiveClass);
-					si.changeValue($input, item.data('value'));
+					$input.val(item.data('value'));
 				} else {
 					si.hideSuggestListContainer($input);
 				}
