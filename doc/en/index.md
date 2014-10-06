@@ -31,23 +31,13 @@ Include from client-side:
 
 Initialize SuggestionInput:
 ```js
-$('[data-suggestion-input]').each(function () {
-	SuggestionInput.create($(this).attr('id'));
-});
-```
-
-### Custom options
-```js
-$('[data-suggestion-input]').each(function () {
-	var options = {
-		startSuggest: 3,
-		suggestTimeout: 250,
-		suggestListClass: 'typeahead dropdown-menu',
-		suggestListActiveClass: 'active'
-	};
-
-	SuggestionInput.create($(this).attr('id'), options);
-});
+$('[data-suggestion-input]').suggestionInput({
+			startSuggest: 3,
+			suggestTimeout: 350,
+			suggestListContainerClass: 'dropdown-menu',
+			suggestionInputContainerClass: '',
+			suggestListActiveClass: 'active',
+			});
 ```
 
 ## Usage

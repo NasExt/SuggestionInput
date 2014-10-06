@@ -3,262 +3,313 @@
  * @author Dusan Hudak <admin@dusan-hudak.com>
  */
 
-/**
- * Keyboard
- */
-function Keyboard() {
-	this.remove = function (e) {
-		return e.keyCode == 8;
-	};
-	this.enter = function (e) {
-		return e.keyCode == 13;
-	};
-	this.escape = function (e) {
-		return e.keyCode == 27;
-	};
-	this.up = function (e) {
-		return e.keyCode == 38;
-	};
-	this.down = function (e) {
-		return e.keyCode == 40;
-	};
-	this.control = function (e) {
-		return $.inArray(e.keyCode, [13, 16, 18, 35, 36, 37, 38, 39, 40, 46, 91, 92]) !== -1;
-	};
-	this.input = function (e) {
-		var letter = /^[a-iA-Z\u00C0-\u02A00-9-]+$/; // a-i numpad 1-9, A-Z letters, accented letters, numbers, hyphen
-		return $.inArray(e.keyCode, [96, 32, 189, 190]) !== -1  // numpad zero, hyphen, point
-			|| letter.test(this.keyToChar(e.keyCode));
-	};
-	this.keyToChar = function (key) {
-		return String.fromCharCode(key);
-	};
-}
-var kb = new Keyboard;
+(function ($) {
+	$.fn.suggestionInput = function (options) {
 
-/**
- * SuggestionInputControl
- */
-function SuggestionInputControl() {
-	var i = this;
+		var si = this;
+		si.timeout = false;
+		si.kb = new SuggestionInputKeyboard;
+		si.suggestListContainerDefaultClass = 'suggestion-input-typeahead';
+		si.suggestionInputContainerDefaultClass = 'suggestion-input-container';
+		si.settings = $.extend({
+			startSuggest: 3,
+			suggestTimeout: 350,
+			suggestListContainerClass: 'dropdown-menu',
+			suggestionInputContainerClass: '',
+			suggestListActiveClass: 'active',
+			dataLinkName: 'suggestionInput',
+			filterAlias: 'suggestionInputValue'
+		}, options);
 
-	this.options = {
-		startSuggest: 3,
-		suggestTimeout: 250,
-		suggestListClass: 'suggestion-input-typeahead dropdown-menu',
-		suggestListActiveClass: 'active'
-	};
-	this.name = undefined;
-	this.control = undefined;
-	this.suggestionInputContainer = undefined;
-	this.suggest = undefined;
-	this.timeout = null;
+		/**
+		 * Get suggestion input container
+		 * @param $input
+		 * @returns {XML|*}
+		 */
+		this.getSuggestionInputContainer = function ($input) {
+			return $($input).parent('.' + si.suggestionInputContainerDefaultClass);
+		};
 
+		/**
+		 * Create suggestion input container
+		 * @param $input
+		 * @returns {XML|*}
+		 */
+		this.createSuggestionInputContainer = function ($input) {
+			var container = $('<div/>').addClass(si.suggestionInputContainerDefaultClass);
+			$input.before(container);
+			container.append($input);
+			return container;
+		};
 
-	/**
-	 * Create link to signal
-	 * @returns string Link to signal
-	 */
-	this.getSignalLink = function () {
-		if (!i.control.data('suggestion-input')) {
-			return false;
-		}
-		return i.control.data('suggestion-input').replace('%25filter%25', i.control.val());
-	};
-
-
-	/**
-	 * Get suggestion input container
-	 * @returns {XML|parent|*|parent|parent|parent}
-	 */
-	this.getSuggestionInputContainer = function () {
-		return i.control.parent();
-	};
-
-
-	/**
-	 * Get input form
-	 * @returns {*|parents|parents}
-	 */
-	this.getForm = function () {
-		return i.control.parents('form');
-	};
-
-
-	/**
-	 * @returns {boolean}
-	 */
-	this.onChange = function () {
-		return false;
-	};
-
-
-	/**
-	 * @param e
-	 */
-	this.onBlur = function (e) {
-		setTimeout(function () {
-			i.suggest.hide();
-		}, 200);
-	};
-
-
-	/**
-	 * Action suggest
-	 * @param e
-	 */
-	this.onSuggest = function (e) {
-
-		// reset timeout
-		if (this.timeout) clearTimeout(this.timeout);
-
-		this.timeout = setTimeout(function () {
-
-			// If not signal link or press kb.control key then stop suggest
-			if (!i.getSignalLink() || kb.control(e)) {
+		/**
+		 * Get link to signal
+		 * @param $input
+		 * @returns {*}
+		 */
+		this.getSignalLink = function ($input) {
+			var data = $($input).data(si.settings.dataLinkName);
+			if (data == undefined) {
 				return false;
 			}
+			return data.replace('%25' + si.settings.filterAlias + '%25', $($input).val());
+		};
 
-			// Start suggest only when the value is longer than i.options.startSuggest
-			// and hide suggestList
-			if (i.control.val().length < i.options.startSuggest) {
-				i.suggest.hide();
-				return false;
-			}
+		/**
+		 * Create SuggestListContainer
+		 * @param $input
+		 * @returns {*}
+		 */
+		this.createSuggestListContainer = function ($input) {
+			var suggestionInputContainer = si.getSuggestionInputContainer($input);
+			var suggestListContainer = $('<ul/>')
+				.addClass(si.suggestListContainerDefaultClass)
+				.addClass(si.settings.suggestListContainerClass)
+				.css({
+					minWidth: $($input).innerWidth() + "px"
+				})
+				.hide();
 
-			// Send ajax request
-			$.ajax(i.getSignalLink(), {
-				success: function (payload) {
-					i.suggest.data('init', true);
-					i.suggest.children().remove();
-
-					var showData = payload.use;
-					if (payload.show) {
-						showData = payload.show;
-					}
-
-					if (payload.use) {
-						$.each(payload.use, function (x, v) {
-							var item = $('<li/>').html(showData[x]);
-							item.attr('data-value', v);
-							item.mouseover(function () {
-								i.suggest.children().removeClass(i.options.suggestListActiveClass);
-								$(this).addClass(i.options.suggestListActiveClass);
-							});
-							item.click(function () {
-								i.control.val(item.data('value'));
-								i.suggest.hide();
-							});
-							i.suggest.append(item);
-						});
-						if (payload.use.length > 0) {
-							i.suggest.show();
-						}
-					}
-				}
+			$($input).css({
+				marginBottom: "0px"
 			});
 
-		}, i.options.suggestTimeout);
-	};
+			suggestionInputContainer.append(suggestListContainer);
+			return suggestListContainer;
+		};
 
+		/**
+		 * Get SuggestListContainer
+		 * @param $input
+		 * @returns {*}
+		 */
+		this.getSuggestListContainer = function ($input) {
+			var suggestionInputContainer = si.getSuggestionInputContainer($input);
+			return suggestionInputContainer.find('.' + si.suggestListContainerDefaultClass);
+		};
 
-	/**
-	 *
-	 * @param e
-	 * @returns {boolean}
-	 */
-	this.onKeyDown = function (e) {
-		if (kb.input(e)) {
-			// if write
-		}
-		else if (kb.enter(e) && i.suggest.is(':visible') && i.suggest.children('.' + i.options.suggestListActiveClass).text().length > 0) {
-			var selected = i.suggest.children('.' + i.options.suggestListActiveClass);
-			selected.click();
-			return false;
-		}
-		else if (kb.down(e) && i.suggest.is(':visible')) {
-			var selected = i.suggest.children('.' + i.options.suggestListActiveClass);
-			if (!selected.length) {
-				var item = i.suggest.children(':first-child').addClass(i.options.suggestListActiveClass);
-				i.control.val(item.data('value'));
-			} else if (selected.next().length) {
-				selected.removeClass(i.options.suggestListActiveClass);
-				var item = selected.next().addClass(i.options.suggestListActiveClass);
-				i.control.val(item.data('value'));
+		/**
+		 * Hide SuggestListContainer
+		 * @param $input
+		 */
+		this.hideSuggestListContainer = function ($input) {
+			var suggestListContainer = si.getSuggestListContainer($input);
+			if (suggestListContainer.is(':visible')) {
+				suggestListContainer.hide();
+				$input.trigger("suggest.hide");
 			}
-			return false;
-		} else if (kb.up(e) && i.suggest.is(':visible')) {
-			var selected = i.suggest.children('.' + i.options.suggestListActiveClass);
-			if (selected.prev().length) {
-				selected.removeClass(i.options.suggestListActiveClass);
-				var item = selected.prev().addClass(i.options.suggestListActiveClass);
-				i.control.val(item.data('value'));
-			} else {
-				i.suggest.hide();
+		};
+
+		/**
+		 * Show SuggestListContainer
+		 * @param $input
+		 */
+		this.showSuggestListContainer = function ($input) {
+			var suggestListContainer = si.getSuggestListContainer($input);
+			if (suggestListContainer.is(':hidden')) {
+				suggestListContainer.show();
+				$input.trigger("suggest.show");
 			}
+		};
+
+		/**
+		 * Cange input value
+		 * @param $input
+		 * @param $val
+		 */
+		this.changeValue = function ($input, $val) {
+			$input.val($val).change();
+		};
+
+		/**
+		 * Event onChange
+		 * @returns {boolean}
+		 */
+		this.onChange = function () {
 			return false;
-		}
-		else if (kb.down(e) && !i.suggest.is(':visible')) {
-			if (i.suggest.children().length > 0) {
-				i.suggest.show();
+		};
+
+		/**
+		 * Event onBlur
+		 * @param e
+		 */
+		this.onBlur = function (e) {
+			var $input = $(this);
+			setTimeout(function () {
+				si.hideSuggestListContainer($input);
+			}, 200);
+		};
+
+		/**
+		 * Event onSuggest
+		 * @param e
+		 * @returns {boolean}
+		 */
+		this.onSuggest = function (e) {
+			var $input = $(this);
+			var suggestListContainer = si.getSuggestListContainer($input);
+
+			// reset timeout
+			if (si.timeout != false) clearTimeout(si.timeout);
+
+			si.timeout = setTimeout(function () {
+
+				// If not signal link or press kb.control key then stop suggest
+				if (si.kb.control(e) || si.kb.escape(e)) {
+					return false;
+				}
+
+				// Start suggest only when the value is longer than i.options.startSuggest
+				// and hide suggestList
+				if ($input.val().length < si.settings.startSuggest) {
+					return false;
+				}
+
+				// Send ajax request
+				$.ajax(si.getSignalLink($input), {
+					success: function (payload) {
+						//suggestListContainer.data('init', true);-----------------------------------
+						suggestListContainer.children().remove();
+
+						var showData = payload.use;
+						if (payload.show) {
+							showData = payload.show;
+						}
+
+						if (payload.use) {
+							$.each(payload.use, function (i, v) {
+								var item = $('<li/>')
+									.html(showData[i])
+									.attr('data-value', v)
+									.mouseover(function () {
+										suggestListContainer.children().removeClass(si.settings.suggestListActiveClass);
+										$(this).addClass(si.settings.suggestListActiveClass);
+									})
+									.click(function () {
+										si.hideSuggestListContainer($input);
+										si.changeValue($input, item.data('value'));
+									});
+
+								suggestListContainer.append(item);
+							});
+
+							if (payload.use.length > 0) {
+								si.showSuggestListContainer($input);
+							}
+						} else {
+							si.hideSuggestListContainer($input);
+						}
+					}
+				});
+
+			}, si.settings.suggestTimeout);
+		};
+
+		/**
+		 * Event onKeyDown
+		 * @param e
+		 * @returns {boolean}
+		 */
+		this.onKeyDown = function (e) {
+			var $input = $(this);
+			var suggestListContainer = si.getSuggestListContainer($input);
+
+			if (si.kb.input(e)) {
+				// if write
 			}
-			return false;
+			else if (si.kb.enter(e) && suggestListContainer.is(':visible') && suggestListContainer.children('.' + si.settings.suggestListActiveClass).text().length > 0) {
+				var selected = suggestListContainer.children('.' + si.settings.suggestListActiveClass);
+				selected.click();
+				return false;
+			}
+			else if (si.kb.down(e) && suggestListContainer.is(':visible')) {
+				var selected = suggestListContainer.children('.' + si.settings.suggestListActiveClass);
+				if (!selected.length) {
+					var item = suggestListContainer.children(':first-child').addClass(si.settings.suggestListActiveClass);
+					si.changeValue($input, item.data('value'));
+				} else if (selected.next().length) {
+					selected.removeClass(si.settings.suggestListActiveClass);
+					var item = selected.next().addClass(si.settings.suggestListActiveClass);
+					si.changeValue($input, item.data('value'));
+				}
+				return false;
+			} else if (si.kb.up(e) && suggestListContainer.is(':visible')) {
+				var selected = suggestListContainer.children('.' + si.settings.suggestListActiveClass);
+				if (selected.prev().length) {
+					selected.removeClass(si.settings.suggestListActiveClass);
+					var item = selected.prev().addClass(si.settings.suggestListActiveClass);
+					si.changeValue($input, item.data('value'));
+				} else {
+					si.hideSuggestListContainer($input);
+				}
+				return false;
+			}
+			else if (si.kb.down(e) && !suggestListContainer.is(':visible')) {
+				if (suggestListContainer.children().length > 0) {
+					si.showSuggestListContainer($input);
+				}
+				return false;
+			}
+			else if (si.kb.escape(e)) {
+				si.hideSuggestListContainer($input);
+				suggestListContainer.children().remove();
+				return false;
+			}
+			else if (si.kb.remove(e)) {
+				// if delete
+			}
+			else if (!si.kb.control(e)) {
+				// if kb is not in control
+			}
+		};
+
+		/**
+		 * SuggestionInputKeyboard
+		 */
+		function SuggestionInputKeyboard() {
+			this.remove = function (e) {
+				return e.keyCode == 8;
+			};
+			this.enter = function (e) {
+				return e.keyCode == 13;
+			};
+			this.escape = function (e) {
+				return e.keyCode == 27;
+			};
+			this.up = function (e) {
+				return e.keyCode == 38;
+			};
+			this.down = function (e) {
+				return e.keyCode == 40;
+			};
+			this.control = function (e) {
+				return $.inArray(e.keyCode, [13, 16, 18, 35, 36, 37, 38, 39, 40, 46, 91, 92]) !== -1;
+			};
+			this.input = function (e) {
+				var letter = /^[a-iA-Z\u00C0-\u02A00-9-]+$/; // a-i numpad 1-9, A-Z letters, accented letters, numbers, hyphen
+				return $.inArray(e.keyCode, [96, 32, 189, 190]) !== -1  // numpad zero, hyphen, point
+					|| letter.test(this.keyToChar(e.keyCode));
+			};
+			this.keyToChar = function (key) {
+				return String.fromCharCode(key);
+			};
 		}
-		else if (kb.escape(e)) {
-			i.control.val('');
-			i.suggest.hide();
-			i.suggest.children().remove();
-			return false;
-		}
-		else if (kb.remove(e)) {
-			// if delete
-		}
-		else if (!kb.control(e)) {
-			// if kb is not in control
-		}
-	};
-}
 
+		/**
+		 * Process input
+		 */
+		return this.each(function () {
+			var $input = $(this);
 
-/**
- * SuggestionInput
- */
-var SuggestionInput = SuggestionInput || {
-	inputs: []
-};
+			if (si.getSignalLink($input)) {
+				si.createSuggestionInputContainer($input);
+				si.createSuggestListContainer($input);
 
-/**
- *
- * @param {string} controlId
- * @param {object} options
- */
-SuggestionInput.create = function (controlId, options) {
-	var input = new SuggestionInputControl;
-
-	input.options = $.extend({}, input.options, options);
-	input.name = controlId;
-	input.control = $('#' + input.name);
-	input.suggestionInputContainer = input.getSuggestionInputContainer();
-
-	if (input.getSignalLink()) {
-		input.suggest = $('<ul/>').addClass(input.options.suggestListClass);
-
-		var width = input.control.innerWidth();
-		input.suggest.css({
-			minWidth: (width-2) + "px"
+				$input.bind('keydown', si.onKeyDown);
+				$input.bind('keyup', si.onSuggest);
+				$input.bind('cut change', si.onChange);
+				$input.bind('blur', si.onBlur);
+			}
 		});
-		input.control.css({
-			marginBottom: "0px"
-		});
-
-		input.suggestionInputContainer.append(input.suggest);
-		input.suggest.hide();
 	}
-
-	input.control.keydown(input.onKeyDown);
-	input.control.keyup(input.onSuggest);
-	input.control.bind('cut change', input.onChange);
-	input.control.blur(input.onBlur);
-
-	this.inputs.push(input);
-};
+})(jQuery);

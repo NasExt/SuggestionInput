@@ -74,7 +74,7 @@ class SuggestionInput extends TextInput implements ISignalReceiver
 			}
 
 			$control->attrs['data-suggestion-input'] = $form->getPresenter()->link(
-				$this->lookupPath('Nette\Application\UI\Presenter') . self::NAME_SEPARATOR . self::SIGNAL_NAME . '!', array(self::SUGGEST_PARAMETER => '%filter%')
+				$this->lookupPath('Nette\Application\UI\Presenter') . self::NAME_SEPARATOR . self::SIGNAL_NAME . '!', array(self::SUGGEST_PARAMETER => '%suggestionInputValue%')
 			);
 		}
 		return $control;
