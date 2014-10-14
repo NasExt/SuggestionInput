@@ -36,10 +36,14 @@
 		 * @returns {XML|*}
 		 */
 		this.createSuggestionInputContainer = function ($input) {
-			var container = $('<div/>').addClass(si.suggestionInputContainerDefaultClass);
-			$input.before(container);
-			container.append($input);
-			return container;
+			if ($input.parent().hasClass(si.suggestionInputContainerDefaultClass)) {
+				return $input.parent();
+			} else {
+				var container = $('<div/>').addClass(si.suggestionInputContainerDefaultClass);
+				$input.before(container);
+				container.append($input);
+				return container;
+			}
 		};
 
 		/**
@@ -62,8 +66,15 @@
 		 */
 		this.createSuggestListContainer = function ($input) {
 			var suggestionInputContainer = si.getSuggestionInputContainer($input);
-			var suggestListContainer = $('<ul/>')
-				.addClass(si.suggestListContainerDefaultClass)
+
+			if ($input.next().hasClass(si.suggestListContainerDefaultClass)) {
+				var suggestListContainer = $input.next();
+			} else {
+				var suggestListContainer = $('<ul/>').addClass(si.suggestListContainerDefaultClass);
+				suggestionInputContainer.append(suggestListContainer);
+			}
+
+			suggestListContainer
 				.addClass(si.settings.suggestListContainerClass)
 				.css({
 					minWidth: $($input).innerWidth() + "px"
@@ -74,7 +85,6 @@
 				marginBottom: "0px"
 			});
 
-			suggestionInputContainer.append(suggestListContainer);
 			return suggestListContainer;
 		};
 

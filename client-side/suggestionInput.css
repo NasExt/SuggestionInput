@@ -1,3 +1,11 @@
+.suggestion-input-container{
+	position: relative;
+}
+
+.suggestion-input-container input[type="text"]{
+	float: none !important;
+}
+
 .suggestion-input-typeahead{
 	left: auto;
 }
