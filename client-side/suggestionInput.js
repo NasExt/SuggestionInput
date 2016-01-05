@@ -185,7 +185,7 @@
 									})
 									.click(function (e) {
 										si.hideSuggestListContainer($input);
-										$input.val(item.data('value')).change();
+										$input.val(item.data('value')).change().keyup();
 									});
 
 								suggestListContainer.append(item);
