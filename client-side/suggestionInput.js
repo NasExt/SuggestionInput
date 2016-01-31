@@ -185,7 +185,12 @@
 									})
 									.click(function (e) {
 										si.hideSuggestListContainer($input);
-										$input.val(item.data('value')).change().keyup();
+
+										var e = jQuery.Event("keyup");
+										e.which = 13;
+										e.keyCode = 13;
+
+										$input.val(item.data('value')).change().trigger(e);
 									});
 
 								suggestListContainer.append(item);
@@ -303,10 +308,10 @@
 				si.createSuggestionInputContainer($input);
 				si.createSuggestListContainer($input);
 
-				$input.bind('keydown', si.onKeyDown);
-				$input.bind('keyup', si.onSuggest);
-				$input.bind('cut change', si.onChange);
-				$input.bind('blur', si.onBlur);
+				$input.unbind('keydown').bind('keydown', si.onKeyDown);
+				$input.unbind('keyup').bind('keyup', si.onSuggest);
+				$input.unbind('cut change').bind('cut change', si.onChange);
+				$input.unbind('blur').bind('blur', si.onBlur);
 			}
 		});
 	}
