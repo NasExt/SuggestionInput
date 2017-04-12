@@ -13,6 +13,7 @@
 		si.suggestionInputContainerDefaultClass = 'suggestion-input-container';
 		si.settings = $.extend({
 			startSuggest: 3,
+			openOnClick: false,
 			suggestTimeout: 350,
 			suggestListContainerClass: 'dropdown-menu',
 			suggestionInputContainerClass: '',
@@ -160,8 +161,14 @@
 
 				// Start suggest only when the value is longer than i.options.startSuggest
 				// and hide suggestList
-				if ($input.val().length < si.settings.startSuggest) {
-					return false;
+				if (si.settings.openOnClick == true) {
+					if (e.type != 'click' && $input.val().length < si.settings.startSuggest) {
+						return false;
+					}
+				} else {
+					if ($input.val().length < si.settings.startSuggest) {
+						return false;
+					}
 				}
 
 				// Send ajax request
@@ -312,6 +319,7 @@
 				$input.unbind('keyup').bind('keyup', si.onSuggest);
 				$input.unbind('cut change').bind('cut change', si.onChange);
 				$input.unbind('blur').bind('blur', si.onBlur);
+				$input.unbind('click').bind('click', si.onSuggest);
 			}
 		});
 	}
