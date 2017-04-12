@@ -162,7 +162,9 @@
 				// Start suggest only when the value is longer than i.options.startSuggest
 				// and hide suggestList
 				if (si.settings.openOnClick == true) {
-					if (e.type != 'click' && $input.val().length < si.settings.startSuggest) {
+					if (e.type != 'click' &&  $input.val().length < si.settings.startSuggest) {
+						return false;
+					}else if(e.type == 'click' && suggestListContainer.is(':visible')){
 						return false;
 					}
 				} else {
