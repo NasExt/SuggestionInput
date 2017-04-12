@@ -140,7 +140,7 @@ class SuggestionInput extends TextInput implements ISignalReceiver
 	 */
 	public static function register()
 	{
-		Container::extensionMethod('addSuggestionInput', callback(__CLASS__, 'addSuggestionInput'));
+		Container::extensionMethod('addSuggestionInput', array(__CLASS__, 'addSuggestionInput'));
 	}
 
 
